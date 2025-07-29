@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Checkup Bot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            background: #f2f2f2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #2a9d8f;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        #chat-box {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin: 10px 0;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+            text-align: right;
+        }
+
+        .bot-message {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 70%;
+            line-height: 1.5;
+        }
+
+        .user-bubble {
+            background: #0077cc;
+            color: white;
+            border-bottom-right-radius: 0;
+        }
+
+        .bot-bubble {
+            background: #e0f7fa;
+            color: #006064;
+            border-bottom-left-radius: 0;
+        }
+
+        .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .input-area {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #2a9d8f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #21867a;
+        }
+
+        @media (max-width: 600px) {
+            #chat-container {
+                width: 90%;
+            }
+
+            .bubble {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🩺 Health Checkup Bot</h1>
+    <div id="chat-container">
+        <div id="chat-box"></div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type your message..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const userInput = document.getElementById("user-input");
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            userInput.value = "";
+            appendMessage("You", message, true);
+
+            appendMessage("Bot", "Typing...", false, true); // loading bubble
+
+            try {
+                const response = await fetch("/api/chat/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ message: message }),
+                });
+                const data = await response.json();
+
+                removeTyping(); // remove loading bubble
+                appendMessage("Bot", data.reply, false);
+            } catch (error) {
+                removeTyping();
+                appendMessage("Bot", "An error occurred. Please try again.", false);
+            }
+        }
+
+        function appendMessage(sender, text, isUser, isTyping = false) {
+            const chatBox = document.getElementById("chat-box");
+            const messageWrapper = document.createElement("div");
+            messageWrapper.className = `message ${isUser ? "user-message" : "bot-message"}`;
+            messageWrapper.innerHTML = `
+                <div class="bubble ${isUser ? "user-bubble" : "bot-bubble"} ${isTyping ? "typing-bubble" : ""}">
+                    ${text}
+                </div>
+            `;
+            chatBox.appendChild(messageWrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeTyping() {
+            const chatBox = document.getElementById("chat-box");
+            const bubbles = chatBox.querySelectorAll(".typing-bubble");
+            bubbles.forEach(bubble => bubble.parentElement.remove());
+        }
+    </script>
+</body>
+</html>
